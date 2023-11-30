@@ -11,7 +11,7 @@ from trainer.trainer_utils import get_optimizer, get_scheduler
 
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.io import load_fsspec
-from TTS.vocoder.datasets.gan_dataset import GANDataset
+from TTS.vocoder.datasets.audio_pair_gan_dataset import AudioPairGANDataset
 from TTS.vocoder.layers.losses import DiscriminatorLoss, GeneratorLoss
 from TTS.vocoder.models import setup_discriminator, setup_generator
 from TTS.vocoder.models.base_vocoder import BaseVocoder
@@ -337,7 +337,7 @@ class GAN(BaseVocoder):
         Returns:
             DataLoader: Torch dataloader.
         """
-        dataset = GANDataset(
+        dataset = AudioPairGANDataset(
             ap=self.ap,
             items=samples,
             seq_len=config.seq_len,
@@ -372,3 +372,4 @@ class GAN(BaseVocoder):
     def init_from_config(config: Coqpit, verbose=True) -> "GAN":
         ap = AudioProcessor.init_from_config(config, verbose=verbose)
         return GAN(config, ap=ap)
+

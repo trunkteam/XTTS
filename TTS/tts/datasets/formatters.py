@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 from glob import glob
 from pathlib import Path
 from typing import List
+import json
+import torchaudio
 
 import pandas as pd
 from tqdm import tqdm
@@ -653,3 +655,54 @@ def bel_tts_formatter(root_path, meta_file, **kwargs):  # pylint: disable=unused
             text = cols[1]
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
+
+
+def iiai_tts(root_path, meta_file, ignored_speakers=None):
+    BASE_DATA_PATH = "/data/asr/workspace/audio/tts"
+    print(f"ignored_speakers: {ignored_speakers}")
+    items = []
+    manifest_path = os.path.join(root_path, meta_file)
+    with open(manifest_path) as src_m:
+        for line in src_m:
+            try:
+                jd = json.loads(line.strip("\n").strip())
+                if (root_path == BASE_DATA_PATH and root_path not in jd["audio_filepath"]) or root_path != BASE_DATA_PATH:
+                    wav_file = os.path.join(root_path, jd["audio_filepath"])
+                else:
+                    wav_file = jd["audio_filepath"]
+                text = str(jd["text"]).strip()
+                speaker_name = jd["speaker"] if "speaker" in jd else None
+                u_fid = jd["u_fid"]
+                if ignored_speakers and isinstance(ignored_speakers, list):
+                    if speaker_name in ignored_speakers:
+                        print(f"Ignoring: {speaker_name}")
+                        continue
+                if "duration" in jd:
+                    duration = jd["duration"]
+                else:
+                    audio_meta = torchaudio.info(wav_file)
+                    duration = audio_meta.num_frames / audio_meta.sample_rate
+
+                if "emotion" in jd:
+                    emotion = jd["emotion"]
+                    items.append({"text": text,
+                                  "audio_file": wav_file,
+                                  "speaker_name": speaker_name,
+                                  "root_path": root_path,
+                                  "emotion": emotion,
+                                  "duration": duration,
+                                  "u_fid": u_fid})
+                else:
+                    items.append({"text": text,
+                                  "audio_file": wav_file,
+                                  "speaker_name": speaker_name,
+                                  "root_path": root_path,
+                                  "duration": duration,
+                                  "u_fid": u_fid})
+
+            except Exception as e:
+                print(e)
+
+    return items
+
+

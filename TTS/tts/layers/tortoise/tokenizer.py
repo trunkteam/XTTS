@@ -25,6 +25,8 @@ class VoiceBpeTokenizer:
     def encode(self, txt):
         txt = self.preprocess_text(txt)
         txt = txt.replace(" ", "[SPACE]")
+        txt = f"[START]{txt}[STOP]"
+
         return self.tokenizer.encode(txt).ids
 
     def decode(self, seq):
